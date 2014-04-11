@@ -1,20 +1,22 @@
-{ "name": "pimatic-plugin-template",
-  "description": "The plugin description",
-  "author": "Your Name <you@example.com> (http://your-website)",
-  "main": "my-plugin",
+{
+  "name": "pimatic-sunrise",
+  "description": "Events for sunrise, sunset and more",
+  "author": "Oliver Schneider <oliverschneider89+pimatic@gmail.com> (http://pimatic.org)",
+  "main": "sunrise",
   "files": [
-    "my-plugin.coffee",
+    "sunrise.coffee",
     "README.md",
-    "my-plugin-config-schema.coffee"
+    "sunrise-config-schema.coffee"
   ],
   "version": "0.7.0",
-  "homepage": "http://your-plugin-website",
+  "homepage": "http:/pimatic.org",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git://github.com/pimatic/pimatic-plugin-template.git"
+    "url": "git://github.com/pimatic/pimatic-sunrise.git"
   },
   "dependencies": {
+    "suncalc": "~1.4.0"
   },
   "peerDependencies": {
     "pimatic": "0.7.*"

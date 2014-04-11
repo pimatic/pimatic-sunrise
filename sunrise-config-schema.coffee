@@ -4,7 +4,11 @@
 
 # Defines a `node-convict` config-schema and exports it.
 module.exports =
-  option1:
-    doc: "Some option"
-    format: String
-    default: "foo"
+  latitude:
+    doc: "latitude"
+    format: Number
+    default: 37.371794
+  longitude:
+    doc: "longitude"
+    format: Number
+    default: -122.03476

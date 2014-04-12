@@ -10,7 +10,6 @@
   ],
   "version": "0.7.0",
   "homepage": "http:/pimatic.org",
-  "private": true,
   "repository": {
     "type": "git",
     "url": "git://github.com/pimatic/pimatic-sunrise.git"

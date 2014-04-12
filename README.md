@@ -4,8 +4,8 @@ pimatic sunrise Plugin
 Events for sunrise, sunset and more.
 
     {
-      "plugin": "sunrise"
-      "latitude": 37.371794
+      "plugin": "sunrise",
+      "latitude": 37.371794,
       "longitude": -122.03476
     }
 

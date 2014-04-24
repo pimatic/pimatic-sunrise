@@ -167,7 +167,7 @@ module.exports = (env) ->
         }
       ]
 
-      describe '#on change', =>
+      describe '#on "change"', =>
         createOnChangeTest = (test) =>
           it "should notify on change #{test.predicate}", (finish) =>
             result = sunrisePredProv.parsePredicate(test.predicate)

@@ -104,7 +104,7 @@ module.exports = (env) ->
         .match(allIdsAndNames, {acFilter: (s) => s in justNames}, (m, match) =>
           if matchToken? and match.length < matchToken.length then return
           matchToken = match
-          fullMatch = m.getLongestFullMatch()
+          fullMatch = m.getFullMatch()
         )
 
 

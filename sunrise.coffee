@@ -2,11 +2,7 @@
 
 module.exports = (env) ->
 
-  # Require [convict](https://github.com/mozilla/node-convict) for config validation.
-  convict = env.require "convict"
-  # Require the [Q](https://github.com/kriskowal/q) promise library
   Q = env.require 'q'
-  # Require the [cassert library](https://github.com/rhoot/cassert).
   assert = env.require 'cassert'
   M = env.matcher
   _ = env.require 'lodash'
@@ -60,13 +56,8 @@ module.exports = (env) ->
 
   class SunrisePlugin extends env.plugins.Plugin
 
-    init: (app, @framework, config) =>
-      # Require your config schema
-      @conf = convict require("./sunrise-config-schema")
-      # and validate the given config.
-      @conf.load(config)
-      @conf.validate()
-      framework.ruleManager.addPredicateProvider(new SunrisePredicateProvider @conf.get(""))
+    init: (app, @framework, @config) =>
+      framework.ruleManager.addPredicateProvider(new SunrisePredicateProvider @config)
 
   class SunrisePredicateProvider extends env.predicates.PredicateProvider
 

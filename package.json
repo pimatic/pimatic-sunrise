@@ -14,6 +14,7 @@
     "type": "git",
     "url": "git://github.com/pimatic/pimatic-sunrise.git"
   },
+  "configSchema": "sunrise-config-schema.coffee", 
   "dependencies": {
     "suncalc": "~1.4.0"
   },

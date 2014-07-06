@@ -2,7 +2,7 @@
 
 module.exports = (env) ->
 
-  Q = env.require 'q'
+  Promise = env.require 'bluebird'
   assert = env.require 'cassert'
   M = env.matcher
   _ = env.require 'lodash'
@@ -214,7 +214,7 @@ module.exports = (env) ->
       switch @modifier
         when 'before' then return now < eventTime
         when 'after' then return now > eventTime
-    getValue: -> Q(@getValueSync())
+    getValue: -> Promise.resolve(@getValueSync())
     destroy: ->
       clearTimeout(@timeoutHandle)
 

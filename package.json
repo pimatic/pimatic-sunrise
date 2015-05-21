@@ -8,13 +8,13 @@
     "README.md",
     "sunrise-config-schema.coffee"
   ],
-  "version": "0.8.0",
+  "version": "0.8.1",
   "homepage": "http:/pimatic.org",
   "repository": {
     "type": "git",
     "url": "git://github.com/pimatic/pimatic-sunrise.git"
   },
-  "configSchema": "sunrise-config-schema.coffee", 
+  "configSchema": "sunrise-config-schema.coffee",
   "dependencies": {
     "suncalc": "~1.4.0"
   },

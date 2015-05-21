@@ -89,6 +89,18 @@ module.exports = (env) ->
           now: new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
           eventDate: new Date('Sat Feb 01 2014 9:49:42 GMT+0100 (CET)')
           value: false
+        },
+        {
+          predicates: [
+            "its at least 2 hours after sunrise", 
+            "its after 2h after sunrise", 
+            "it is more than 120 minutes after sunrise"
+          ]
+          modifier: 'after'
+          eventId: 'sunrise'
+          now: new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
+          eventDate: new Date('Sat Feb 01 2014 9:49:42 GMT+0100 (CET)')
+          value: false
         }
       ]
 

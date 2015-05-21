@@ -137,18 +137,18 @@ module.exports = (env) ->
       refDate = new Date(now)
       if @timeOffset > 0
         refDate = new Date(refDate.getTime() + @timeOffset)
+      return @_getNextEventDate(now, refDate)
+
+    _getNextEventDate: (now, refDate) ->
       eventTimeWithOffset = @_getEventTime(refDate)
-      if eventTimeWithOffset > now
-        timediff = eventTimeWithOffset.getTime() - now.getTime()
-        assert timediff > 0
-        return timediff
-      else
-        # get the event for next day:
+      timediff = eventTimeWithOffset.getTime() - now.getTime()
+      while eventTimeWithOffset < now
+        # get event for next day
         refDate.setDate(refDate.getDate()+1)
         eventTimeWithOffset = @_getEventTime(refDate)
         timediff = eventTimeWithOffset.getTime() - now.getTime()
-        assert timediff > 0
-        return timediff
+      assert timediff > 0
+      return timediff
 
     _getTimeTillTomorrow: ->
       now = @_getNow()

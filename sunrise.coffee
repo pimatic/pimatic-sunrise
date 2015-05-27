@@ -142,7 +142,7 @@ module.exports = (env) ->
     _getNextEventDate: (now, refDate) ->
       eventTimeWithOffset = @_getEventTime(refDate)
       timediff = eventTimeWithOffset.getTime() - now.getTime()
-      while eventTimeWithOffset < now
+      while timediff <= 0
         # get event for next day
         refDate.setDate(refDate.getDate()+1)
         eventTimeWithOffset = @_getEventTime(refDate)

@@ -57,7 +57,7 @@ module.exports = (env) ->
   class SunrisePlugin extends env.plugins.Plugin
 
     init: (app, @framework, @config) =>
-      framework.ruleManager.addPredicateProvider(new SunrisePredicateProvider @config)
+      @framework.ruleManager.addPredicateProvider(new SunrisePredicateProvider @config)
 
   class SunrisePredicateProvider extends env.predicates.PredicateProvider
 

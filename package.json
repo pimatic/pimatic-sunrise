@@ -6,7 +6,8 @@
   "files": [
     "sunrise.coffee",
     "README.md",
-    "sunrise-config-schema.coffee"
+    "sunrise-config-schema.coffee",
+    "LICENSE"
   ],
   "version": "0.8.2",
   "homepage": "http:/pimatic.org",
@@ -14,12 +15,13 @@
     "type": "git",
     "url": "git://github.com/pimatic/pimatic-sunrise.git"
   },
+  "license": "GPL-2.0",
   "configSchema": "sunrise-config-schema.coffee",
   "dependencies": {
     "suncalc": "~1.4.0"
   },
   "peerDependencies": {
-    "pimatic": "0.8.*"
+    "pimatic": ">=0.8.0 <0.9.0"
   },
   "engines": {
     "node": ">0.8.x",

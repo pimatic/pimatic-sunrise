@@ -91,7 +91,8 @@ module.exports = (env) ->
       super(@config)
 
       scheduleUpdate = () =>
-        setTimeout =>
+        @_updateTimeout = setTimeout =>
+          if @_destroyed then return
           @_initTimes()
           for attribute in @config.attributes
             do (attribute) =>
@@ -119,6 +120,10 @@ module.exports = (env) ->
         @latitude,
         @longitude
       )
+
+    destroy: () ->
+      clearTimeout(@_updateTimeout)
+      super()
 
   class SunrisePredicateProvider extends env.predicates.PredicateProvider
 

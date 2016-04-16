@@ -1,5 +1,4 @@
-pimatic sunrise Plugin
-=======================
+# pimatic sunrise Plugin
 
 Events for sunrise, sunset and more.
 
@@ -25,3 +24,31 @@ The Plugin uses [suncalc](https://github.com/mourner/suncalc). All Events:
   * `nauticalDawn`: nautical dawn (morning nautical twilight starts)
   * `dawn`: dawn (morning nautical twilight ends, morning civil twilight starts)
   * `nadir`: nadir (darkest moment of the night, sun is in the lowest position)
+
+## Device Configuration
+
+Optionally, you can setup a `SunriseDevice` to get sunlight times displayed for a given location. If no location is 
+provided with the device configuration the location given with plugin configuration applies. The attributes property
+is used to define which sunlight-related attributes shall be exposed by the device. The name given for an 
+attribute is one of the sunlight event names listed above. 
+
+If a label text is set for an attribute the text will be as an acronym for the attribute on display. Otherwise, the 
+acronym will be constructed from the event name. If the label text is an empty string no acronym will be displayed.
+
+    {
+          "id": "sunrise-1",
+          "class": "SunriseDevice",
+          "name": "Sunrise",
+          "latitude": 52.5072111,
+          "longitude": 13.1449592,
+          "attributes": [
+            {
+              "name": "sunrise",
+              "label": "Sunrise Time"
+            },
+            {
+              "name": "sunset",
+              "label": "Sunset Time"
+            }
+          ]
+    }

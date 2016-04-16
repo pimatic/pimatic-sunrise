@@ -4,6 +4,7 @@
   "author": "Oliver Schneider <oliverschneider89+pimatic@gmail.com> (http://pimatic.org)",
   "main": "sunrise",
   "files": [
+    "device-config-schema.coffee",
     "sunrise.coffee",
     "README.md",
     "sunrise-config-schema.coffee",

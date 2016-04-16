@@ -84,7 +84,6 @@ module.exports = (env) ->
             description: label
             type: "string"
             acronym: attribute.label || label
-            unit: "T"
 
           @_createGetter attribute.name, () =>
             return Promise.resolve @eventTimes[attribute.name].toLocaleTimeString()

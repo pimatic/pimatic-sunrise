@@ -28,11 +28,11 @@ The Plugin uses [suncalc](https://github.com/mourner/suncalc). All Events:
 ## Device Configuration
 
 Optionally, you can setup a `SunriseDevice` to get sunlight times displayed for a given location. If no location is 
-provided with the device configuration the location given with plugin configuration applies. The attributes property
-is used to define which sunlight-related attributes shall be exposed by the device. The name given for an 
+provided with the device configuration the location given with the plugin configuration applies. The `attributes` 
+property is used to define which sunlight-related attributes shall be exposed by the device. The name given for an 
 attribute is one of the sunlight event names listed above. 
 
-If a label text is set for an attribute the text will be as an acronym for the attribute on display. Otherwise, the 
+If a label text is set for an attribute the text will be used as an acronym for the attribute on display. Otherwise, the 
 acronym will be constructed from the event name. If the label text is an empty string no acronym will be displayed.
 
     {

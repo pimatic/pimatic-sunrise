@@ -10,7 +10,7 @@
     "sunrise-config-schema.coffee",
     "LICENSE"
   ],
-  "version": "0.8.5",
+  "version": "0.8.6",
   "homepage": "http:/pimatic.org",
   "repository": {
     "type": "git",

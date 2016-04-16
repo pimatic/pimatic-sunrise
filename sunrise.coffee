@@ -59,6 +59,68 @@ module.exports = (env) ->
     init: (app, @framework, @config) =>
       @framework.ruleManager.addPredicateProvider(new SunrisePredicateProvider @config)
 
+      deviceConfigDef = require("./device-config-schema")
+      @framework.deviceManager.registerDeviceClass("SunriseDevice", {
+        configDef: deviceConfigDef.SunriseDevice,
+        createCallback: (config, lastState) =>
+          new SunriseDevice(config, @, lastState)
+      })
+
+
+  class SunriseDevice extends env.devices.Device
+    constructor: (@config, @plugin, lastState) ->
+      @id = @config.id
+      @name = @config.name
+      @latitude = @config.latitude ? @plugin.config.latitude
+      @longitude = @config.longitude ? @plugin.config.longitude
+      @attributes = _.cloneDeep(@attributes)
+      @_initTimes()
+
+      for attribute in @config.attributes
+        do (attribute) =>
+          label = attribute.name.replace /(^[a-z])|([A-Z])/g, ((match, p1, p2, offset) =>
+            (if offset>0 then " " else "") + match.toUpperCase())
+          @attributes[attribute.name] =
+            description: label
+            type: "string"
+            acronym: attribute.label || label
+            unit: "T"
+
+          @_createGetter attribute.name, () =>
+            return Promise.resolve @eventTimes[attribute.name].toLocaleTimeString()
+
+      super(@config)
+
+      scheduleUpdate = () =>
+        setTimeout =>
+          @_initTimes()
+          for attribute in @config.attributes
+            do (attribute) =>
+              @emit attribute.name, @eventTimes[attribute.name].toLocaleTimeString()
+
+          scheduleUpdate()
+        , @_getTimeTillTomorrow()
+
+      scheduleUpdate()
+
+    _getTimeTillTomorrow: () ->
+      now = new Date()
+      tomorrow = new Date(now)
+      tomorrow.setDate(now.getDate() + 1)
+      tomorrow.setHours(0)
+      tomorrow.setMinutes(0)
+      tomorrow.setSeconds(0)
+      tomorrow.setMilliseconds(0)
+      return tomorrow.getTime() - now.getTime()
+
+    _initTimes: () ->
+      refDate = new Date()
+      @eventTimes = suncalc.getTimes(
+        new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate(), 12, 0, 0, 0, 0),
+        @latitude,
+        @longitude
+      )
+
   class SunrisePredicateProvider extends env.predicates.PredicateProvider
 
     constructor: (@config) ->
@@ -159,7 +221,6 @@ module.exports = (env) ->
       tomorrow.setSeconds(0)
       tomorrow.setMilliseconds(0)
       return tomorrow.getTime() - now.getTime()
-
 
     setup: -> 
       setNextTimeOut = =>

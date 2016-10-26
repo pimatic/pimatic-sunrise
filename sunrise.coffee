@@ -1,4 +1,5 @@
 # #Sunrise plugin
+milliseconds = require '../pimatic/lib/milliseconds'
 
 module.exports = (env) ->
 
@@ -57,7 +58,7 @@ module.exports = (env) ->
   class SunrisePlugin extends env.plugins.Plugin
 
     init: (app, @framework, @config) =>
-      @framework.ruleManager.addPredicateProvider(new SunrisePredicateProvider @config)
+      @framework.ruleManager.addPredicateProvider(new SunrisePredicateProvider @framework, @config)
 
       deviceConfigDef = require("./device-config-schema")
       @framework.deviceManager.registerDeviceClass("SunriseDevice", {
@@ -127,7 +128,7 @@ module.exports = (env) ->
 
   class SunrisePredicateProvider extends env.predicates.PredicateProvider
 
-    constructor: (@config) ->
+    constructor: (@framework, @config) ->
       env.logger.info """
         Your location is set to lat: #{@config.latitude}, long: #{@config.longitude}
       """
@@ -141,19 +142,33 @@ module.exports = (env) ->
       fullMatch = null
       eventId = null
       timeOffset = 0
-      modifier = null      
+      modifier = null
 
       M(input, context)
-        .match(['its ', 'it is '], optional: yes)
+        .match(['its ', 'it is ', 'at '], optional: yes)
         .match(['before ', 'after '], optional: yes, (m, match) => modifier = match.trim())
         .optional( (m) => 
           next = m
-          m.matchTimeDuration((m, tp) => 
+
+          m.matchTimeDurationExpression((m, tp) => 
+          #20151025 m.matchTimeDuration((m, tp) => 
             m.match([' before ', ' after '], (m, match) => 
               next = m
-              timeOffset = tp.timeMs
-              if match.trim() is "before"
-                timeOffset = -timeOffset
+              #timeOffset = tp.timeMs
+              ba = match.trim()
+              tp.mul = if match.trim() is "before" then -1 else 1
+              timeOffset = tp
+
+              env.logger.info """
+                ba = #{ba}
+                tp.tokens: #{tp.tokens}
+                tp.unit: #{tp.unit}
+                tp.mul: #{tp.mul}
+                tp.timeNs: #{tp.timeNs}
+                tp: #{tp}
+              """
+              #if match.trim() is "before"
+              #timeOffset = -timeOffset
             )
           )
           return next
@@ -174,14 +189,14 @@ module.exports = (env) ->
         return {
           token: fullMatch
           nextInput: input.substring(fullMatch.length)
-          predicateHandler: new SunrisePredicateHandler(@config, eventId, modifier, timeOffset)
+          predicateHandler: new SunrisePredicateHandler(@framework, @config, eventId, modifier, timeOffset)
         }
       else
         return null
 
   class SunrisePredicateHandler extends env.predicates.PredicateHandler
 
-    constructor: (@config, @eventId, @modifier, @timeOffset) ->
+    constructor: (@framework, @config, @eventId, @modifier, @timeOffset) ->
 
     # gets overwritten by tests
     _getNow: -> new Date()
@@ -194,11 +209,26 @@ module.exports = (env) ->
         @config.longitude
       )
       # add offset
-      eventTimeWithOffset = new Date(eventTimes[eventId].getTime() + timeOffset)
-      return eventTimeWithOffset
+      return @_evaluateTimeExpr(timeOffset.tokens, timeOffset.unit).then( (timeMs) =>
+        # Multiply with -1 (before) or 1 (after)
+        timeMs *= timeOffset.mul
+        env.logger.info """
+          In promise timeMs: #{timeMs} (mul: #{timeOffset.mul})
+        """
+        eventTimeWithOffset = new Date(eventTimes[eventId].getTime() + timeMs)
+        return eventTimeWithOffset
+      ).catch( (err) =>
+        env.logger.error "Error evaluating time expr for predicate: #{err.message}"
+        env.logger.debug err
+      );
 
+    _evaluateTimeExpr: (tokens, unit) =>
+      @framework.variableManager.evaluateNumericExpression(tokens).then( (time) =>
+        return milliseconds.parse "#{time} #{unit}"
+      )
 
     _getTimeTillEvent: ->
+      env.logger.info "_getTimeTillEvent"
       now = @_getNow()
       refDate = new Date(now)
       if @timeOffset > 0
@@ -206,15 +236,16 @@ module.exports = (env) ->
       return @_getNextEventDate(now, refDate)
 
     _getNextEventDate: (now, refDate) ->
-      eventTimeWithOffset = @_getEventTime(refDate)
-      timediff = eventTimeWithOffset.getTime() - now.getTime()
-      while timediff <= 0
-        # get event for next day
-        refDate.setDate(refDate.getDate()+1)
-        eventTimeWithOffset = @_getEventTime(refDate)
+      env.logger.info "_getNextEventDate #{refDate}"
+      #eventTimeWithOffset = @_getEventTime(refDate)
+      @_getEventTime(refDate).then( (eventTimeWithOffset) ->
         timediff = eventTimeWithOffset.getTime() - now.getTime()
-      assert timediff > 0
-      return timediff
+        if timediff < 0
+          msPerDay = 24 * 60 * 60 * 1000
+          timediff += Math.ceil(-(timediff / msPerDay)) * msPerDay
+        assert timediff > 0
+        return timediff
+      )
 
     _getTimeTillTomorrow: ->
       now = @_getNow()
@@ -227,23 +258,37 @@ module.exports = (env) ->
       return tomorrow.getTime() - now.getTime()
 
     setup: -> 
+      @changeListener = (changedVar, value) =>
+        env.logger.info "changeListener #{changedVar}, #{value}"
+        env.logger.info("Variables: #{@variables}")
+        unless changedVar.name in @variables then return
+        env.logger.info("setNextTimeout()")
+        setNextTimeOut()
+
+      @variables = @framework.variableManager.extractVariables(@timeOffset.tokens)
+      @framework.variableManager.on('variableValueChanged', @changeListener)
+
       setNextTimeOut = =>
+        env.logger.info "setNextTimeOut mod: #{@modifier}"
         switch @modifier
           when 'exact'
-            timeTillEvent = @_getTimeTillEvent()
-            @timeoutHandle = setTimeout( (=>
-              setNextTimeOut()
-              @emit('change', 'event')
-            ), timeTillEvent)
+            @_getTimeTillEvent().then( (timeTillEvent) ->
+              env.logger.info("setTimeout in #{timeTillEvent}")
+              @timeoutHandle = setTimeout( (=>
+                setNextTimeOut()
+                @emit('change', 'event')
+              ), timeTillEvent)
+            )
           when 'before'
             val = @getValueSync()
             if val is true
-              # If its before the evnet then next change is the event date:
-              timeTillEvent = @_getTimeTillEvent()
-              @timeoutHandle = setTimeout( (=>
-                setNextTimeOut()
-                @emit('change', false)
-              ), timeTillEvent)
+              # If its before the event then next change is the event date:
+              @_getTimeTillEvent().then( (timeTillEvent) ->
+                @timeoutHandle = setTimeout( (=>
+                  setNextTimeOut()
+                  @emit('change', false)
+                ), timeTillEvent)
+              )
             else
               # else its after the event, so next event date is 0:00 next day
               timeTillTomorrow = @_getTimeTillTomorrow()
@@ -254,12 +299,13 @@ module.exports = (env) ->
           when 'after'
             val = @getValueSync()
             if val is false
-              # If its before the evnet then next change is the event date:
-              timeTillEvent = @_getTimeTillEvent()
-              @timeoutHandle = setTimeout( (=>
-                setNextTimeOut()
-                @emit('change', true)
-              ), timeTillEvent)
+              # If its before the event then next change is the event date:
+              @_getTimeTillEvent().then( (timeTillEvent) ->
+                @timeoutHandle = setTimeout( (=>
+                  setNextTimeOut()
+                  @emit('change', true)
+                ), timeTillEvent)
+              )
             else
               # else its after the event, so next event date is 0:00 next day
               timeTillTomorrow = @_getTimeTillTomorrow()
@@ -282,6 +328,7 @@ module.exports = (env) ->
     getValue: -> Promise.resolve(@getValueSync())
     destroy: ->
       clearTimeout(@timeoutHandle)
+      @framework.variableManager.removeListener('variableValueChanged', @changeListener)
 
   # ###Finally
   # Create a instance of sunrise

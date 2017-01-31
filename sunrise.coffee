@@ -151,31 +151,11 @@ module.exports = (env) ->
           next = m
 
           m.matchTimeDurationExpression((m, tp) => 
-            #env.logger.info """
-            #  tp.tokens: #{tp.tokens}
-            #  tp.unit: #{tp.unit}
-            #  tp.mul: #{tp.mul}
-            #  tp.timeNs: #{tp.timeNs}
-            #  tp: #{tp}
-            #"""
-          #20151025 m.matchTimeDuration((m, tp) => 
             m.match([' before ', ' after '], (m, match) => 
               next = m
-              #timeOffset = tp.timeMs
               ba = match.trim()
               tp.mul = if match.trim() is "before" then -1 else 1
               timeOffset = tp
-
-              #env.logger.info """
-              #  ba = #{ba}
-              #  tp.tokens: #{tp.tokens}
-              #  tp.unit: #{tp.unit}
-              #  tp.mul: #{tp.mul}
-              #  tp.timeNs: #{tp.timeNs}
-              #  tp: #{tp}
-              #"""
-              #if match.trim() is "before"
-              #timeOffset = -timeOffset
             )
           )
           return next
@@ -219,9 +199,6 @@ module.exports = (env) ->
       return @_evaluateTimeExpr(timeOffset.tokens, timeOffset.unit).then( (timeMs) =>
         # Multiply with -1 (before) or 1 (after)
         timeMs *= timeOffset.mul
-        #env.logger.info """
-        #  In promise timeMs: #{timeMs} (mul: #{timeOffset.mul})
-        #"""
         eventTimeWithOffset = new Date(eventTimes[eventId].getTime() + timeMs)
         return eventTimeWithOffset
       ).catch( (err) =>
@@ -236,18 +213,14 @@ module.exports = (env) ->
 
     _getTimeTillEvent: ->
       now = @_getNow()
-      env.logger.info "_getTimeTillEvent, now: #{now} @timeOffet: #{@timeOffset}"
       refDate = new Date(now)
       if @timeOffset > 0
         refDate = new Date(refDate.getTime() + @timeOffset)
       return @_getNextEventDate(now, refDate)
 
     _getNextEventDate: (now, refDate) ->
-      #env.logger.info "_getNextEventDate #{now} #{refDate}"
-      #eventTimeWithOffset = @_getEventTime(refDate)
       @_getEventTime(refDate).then( (eventTimeWithOffset) ->
         timediff = eventTimeWithOffset.getTime() - now.getTime()
-        #env.logger.info("timediff: " + timediff)
         if timediff < 0
           msPerDay = 24 * 60 * 60 * 1000
           timediff += Math.ceil(-(timediff / msPerDay)) * msPerDay
@@ -267,31 +240,17 @@ module.exports = (env) ->
 
     setup: -> 
       @changeListener = (changedVar, value) =>
-        #env.logger.info "changeListener #{changedVar}, #{value}"
-        #env.logger.info("Variables: #{@variables}")
         unless changedVar.name in @variables then return
         clearTimeout(@timeoutHandle)
-        #env.logger.info("setNextTimeout()")
         setNextTimeOut()
 
-      #env.logger.info("@timeOffset: ", @timeOffset)
-      #env.logger.info("@timeOffset.tokens: ", @timeOffset.tokens)
       @variables = @framework.variableManager.extractVariables(@timeOffset.tokens)
-      #console.log('@variables:', @variables)
-      #console.log("Adding variableValueChanged listener")
-      #console.log(@framework.variableManager.listeners('variableValueChanged'))
       @framework.variableManager.on('variableValueChanged', @changeListener)
-      #console.log(@framework.variableManager.listeners('variableValueChanged'))
 
       setNextTimeOut = =>
-        #console.trace('setNextTimeOut')
-        #env.logger.info "setNextTimeOut mod: #{@modifier}"
         switch @modifier
           when 'exact'
             @_getTimeTillEvent().then( (timeTillEvent) =>
-              #console.trace("setTimeout")
-              env.logger.info("setTimeout in #{timeTillEvent}")
-              env.logger.info("setTimeout at", new Date(@_getNow().getTime() + timeTillEvent))
               @timeoutHandle = setTimeout( (=>
                 @emit('change', 'event')
                 setNextTimeOut()
@@ -348,13 +307,8 @@ module.exports = (env) ->
           when 'after' then return now > eventTime
       )
     destroy: ->
-      #console.log("sunrise.coffee clearTimeout(#{@timeoutHandle})")
       clearTimeout(@timeoutHandle)
-      this.removeAllListeners()
-      #console.log("Removing variableValueChanged listener")
-      #console.log(@framework.variableManager.listeners('variableValueChanged'))
       @framework.variableManager.removeListener('variableValueChanged', @changeListener)
-      #console.log(@framework.variableManager.listeners('variableValueChanged'))
 
   # ###Finally
   # Create a instance of sunrise

@@ -31,7 +31,7 @@ module.exports = (env) ->
           frameworkDummy.variableManager = new env.variables.VariableManager(frameworkDummy, [])
           frameworkDummy.variableManager.addVariable('offset', 'value', 5, 'seconds')
           frameworkDummy.variableManager.on('variableValueChanged', (changedVar, value) ->
-            console.log("variableValueChanged #{changedVar.name} = #{value}")
+            #console.log("variableValueChanged #{changedVar.name} = #{value}")
           )
 
           plugin.init(null, frameworkDummy, {latitude:52.5234051, longitude: 13.4113999}) # Berlin
@@ -140,7 +140,7 @@ module.exports = (env) ->
 
       describe '#parsePredicate()', =>
         createParsePredicateTest = (test, pred) =>
-          it.skip "should parse #{pred}", () =>
+          it "should parse #{pred}", () =>
             assert frameworkDummy?
             assert frameworkDummy.variableManager?
             {variables, functions} = frameworkDummy.variableManager.getVariablesAndFunctions()
@@ -168,7 +168,6 @@ module.exports = (env) ->
 
               timeTillEventPromise = predHandler._getTimeTillEvent()
               timeTillEventPromise.then( (timeTillEvent) =>
-                #console.log "timetillEvent:", (timeTillEvent / 60 / 60 / 1000)
                 predHandler.getValue().then( (val) =>
                   assert.equal test.value, val
                 )
@@ -184,17 +183,17 @@ module.exports = (env) ->
       tests = [
         {
           predicate: "time is sunrise"
-          getNow: (eventDate) -> new Date(eventDate.getTime()-500)
+          getNow: (eventDate) -> new Date(eventDate.getTime()-100)
           changeVal: 'event'
         }
         {
           predicate: "time is sunset"
-          getNow: (eventDate) -> new Date(eventDate.getTime()-500)
+          getNow: (eventDate) -> new Date(eventDate.getTime()-100)
           changeVal: 'event'
         }
         {
           predicate: "time is before sunrise"
-          getNow: (eventDate) -> new Date(eventDate.getTime()-500)
+          getNow: (eventDate) -> new Date(eventDate.getTime()-100)
           changeVal: false
         }
         {
@@ -205,13 +204,13 @@ module.exports = (env) ->
             dayBefore.setHours(23)
             dayBefore.setMinutes(59)
             dayBefore.setSeconds(59)
-            dayBefore.setMilliseconds(599)
+            dayBefore.setMilliseconds(899)
             return dayBefore
           changeVal: true
         }
         {
           predicate: "time is after sunrise"
-          getNow: (eventDate) -> new Date(eventDate.getTime()-500)
+          getNow: (eventDate) -> new Date(eventDate.getTime()-100)
           changeVal: true
         }
         {
@@ -221,20 +220,20 @@ module.exports = (env) ->
             dayEnd.setHours(23)
             dayEnd.setMinutes(59)
             dayEnd.setSeconds(59)
-            dayEnd.setMilliseconds(599)
+            dayEnd.setMilliseconds(899)
             return dayEnd
           changeVal: false
         }
         {
           predicate: "time is $offset seconds before sunrise"
-          getNow: (eventDate) -> new Date(eventDate.getTime()-500)
+          getNow: (eventDate) -> new Date(eventDate.getTime()-100)
           changeVal: 'event'
         }
       ]
 
       describe '#on "change"', =>
         createOnChangeTest = (test) =>
-          it.skip "should notify on change #{test.predicate}", (finish) =>
+          it "should notify on change #{test.predicate}", (finish) =>
             assert frameworkDummy?
             assert frameworkDummy.variableManager?
             {variables, functions} = frameworkDummy.variableManager.getVariablesAndFunctions()
@@ -255,10 +254,8 @@ module.exports = (env) ->
             eventDatePromise.then( (eventDate) =>
               predHandler._getNow = => test.getNow(eventDate)
               predHandler.setup()
-              #console.log("--- END ---")
               predHandler.on('change', (val) =>
                 predHandler._getNow = => new Date(eventDate.getTime() + 5000)
-                #console.log(test.predicate + " change called: ", val)
                 assert.equal val, test.changeVal
                 predHandler.destroy()
                 finish()
@@ -309,33 +306,22 @@ module.exports = (env) ->
             predHandler = result.predicateHandler
             assert predHandler
 
-            #refDate = new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
-            #sunriseDate = new Date('Sat Feb 01 2014 07:49:42 GMT+0100 (CET)')
 
-            predHandler._getNow = -> new Date(test.eventDate - 500)
-            #predHandler._getNow = -> new Date(sunriseDate.getTime() - 1 * 60 * 1000)
+            predHandler._getNow = -> new Date(test.eventDate - 100)
             changes = 0
 
-            console.log(test.id + " - Add change handler");
             predHandler.on('change', (val) ->
-              console.log(test.id + " - Value changed: ", val)
-              #console.log(test)
-              #if ++changes >= 2
+              predHandler._getNow = => new Date(test.eventDate + 10000)
               predHandler.removeAllListeners()
               predHandler.destroy()
-              predHandler._getNow = => new Date(test.eventDate + 10000)
-              #console.log(test.id + " - Calling finish()")
               finish()
-              #else
-              #predHandler._getNow = => new Date(sunriseDate.getTime() - test.offset2 * 1000 - 500)
-              #frameworkDummy.variableManager.updateVariable('offset', 'value', test.offset2, 'seconds')
             )
 
             predHandler.setup()
 
             setTimeout( (->
               frameworkDummy.variableManager.updateVariable('offset', 'value', test.offset2, 'seconds')
-              ), 500)
+              ), 20)
 
             0
 

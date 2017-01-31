@@ -141,16 +141,23 @@ module.exports = (env) ->
       matchToken = null
       fullMatch = null
       eventId = null
-      timeOffset = 0
+      timeOffset = { tokens: [ 0 ], unit: 'minutes', mul: 1 }
       modifier = null
 
       M(input, context)
-        .match(['its ', 'it is ', 'at '], optional: yes)
+        .match(['time is '], optional: yes)
         .match(['before ', 'after '], optional: yes, (m, match) => modifier = match.trim())
         .optional( (m) => 
           next = m
 
           m.matchTimeDurationExpression((m, tp) => 
+            #env.logger.info """
+            #  tp.tokens: #{tp.tokens}
+            #  tp.unit: #{tp.unit}
+            #  tp.mul: #{tp.mul}
+            #  tp.timeNs: #{tp.timeNs}
+            #  tp: #{tp}
+            #"""
           #20151025 m.matchTimeDuration((m, tp) => 
             m.match([' before ', ' after '], (m, match) => 
               next = m
@@ -159,14 +166,14 @@ module.exports = (env) ->
               tp.mul = if match.trim() is "before" then -1 else 1
               timeOffset = tp
 
-              env.logger.info """
-                ba = #{ba}
-                tp.tokens: #{tp.tokens}
-                tp.unit: #{tp.unit}
-                tp.mul: #{tp.mul}
-                tp.timeNs: #{tp.timeNs}
-                tp: #{tp}
-              """
+              #env.logger.info """
+              #  ba = #{ba}
+              #  tp.tokens: #{tp.tokens}
+              #  tp.unit: #{tp.unit}
+              #  tp.mul: #{tp.mul}
+              #  tp.timeNs: #{tp.timeNs}
+              #  tp: #{tp}
+              #"""
               #if match.trim() is "before"
               #timeOffset = -timeOffset
             )
@@ -212,9 +219,9 @@ module.exports = (env) ->
       return @_evaluateTimeExpr(timeOffset.tokens, timeOffset.unit).then( (timeMs) =>
         # Multiply with -1 (before) or 1 (after)
         timeMs *= timeOffset.mul
-        env.logger.info """
-          In promise timeMs: #{timeMs} (mul: #{timeOffset.mul})
-        """
+        #env.logger.info """
+        #  In promise timeMs: #{timeMs} (mul: #{timeOffset.mul})
+        #"""
         eventTimeWithOffset = new Date(eventTimes[eventId].getTime() + timeMs)
         return eventTimeWithOffset
       ).catch( (err) =>
@@ -228,18 +235,19 @@ module.exports = (env) ->
       )
 
     _getTimeTillEvent: ->
-      env.logger.info "_getTimeTillEvent"
       now = @_getNow()
+      env.logger.info "_getTimeTillEvent, now: #{now} @timeOffet: #{@timeOffset}"
       refDate = new Date(now)
       if @timeOffset > 0
         refDate = new Date(refDate.getTime() + @timeOffset)
       return @_getNextEventDate(now, refDate)
 
     _getNextEventDate: (now, refDate) ->
-      env.logger.info "_getNextEventDate #{refDate}"
+      #env.logger.info "_getNextEventDate #{now} #{refDate}"
       #eventTimeWithOffset = @_getEventTime(refDate)
       @_getEventTime(refDate).then( (eventTimeWithOffset) ->
         timediff = eventTimeWithOffset.getTime() - now.getTime()
+        #env.logger.info("timediff: " + timediff)
         if timediff < 0
           msPerDay = 24 * 60 * 60 * 1000
           timediff += Math.ceil(-(timediff / msPerDay)) * msPerDay
@@ -259,76 +267,94 @@ module.exports = (env) ->
 
     setup: -> 
       @changeListener = (changedVar, value) =>
-        env.logger.info "changeListener #{changedVar}, #{value}"
-        env.logger.info("Variables: #{@variables}")
+        #env.logger.info "changeListener #{changedVar}, #{value}"
+        #env.logger.info("Variables: #{@variables}")
         unless changedVar.name in @variables then return
-        env.logger.info("setNextTimeout()")
+        clearTimeout(@timeoutHandle)
+        #env.logger.info("setNextTimeout()")
         setNextTimeOut()
 
+      #env.logger.info("@timeOffset: ", @timeOffset)
+      #env.logger.info("@timeOffset.tokens: ", @timeOffset.tokens)
       @variables = @framework.variableManager.extractVariables(@timeOffset.tokens)
+      #console.log('@variables:', @variables)
+      #console.log("Adding variableValueChanged listener")
+      #console.log(@framework.variableManager.listeners('variableValueChanged'))
       @framework.variableManager.on('variableValueChanged', @changeListener)
+      #console.log(@framework.variableManager.listeners('variableValueChanged'))
 
       setNextTimeOut = =>
-        env.logger.info "setNextTimeOut mod: #{@modifier}"
+        #console.trace('setNextTimeOut')
+        #env.logger.info "setNextTimeOut mod: #{@modifier}"
         switch @modifier
           when 'exact'
-            @_getTimeTillEvent().then( (timeTillEvent) ->
+            @_getTimeTillEvent().then( (timeTillEvent) =>
+              #console.trace("setTimeout")
               env.logger.info("setTimeout in #{timeTillEvent}")
+              env.logger.info("setTimeout at", new Date(@_getNow().getTime() + timeTillEvent))
               @timeoutHandle = setTimeout( (=>
-                setNextTimeOut()
                 @emit('change', 'event')
+                setNextTimeOut()
               ), timeTillEvent)
             )
           when 'before'
-            val = @getValueSync()
-            if val is true
-              # If its before the event then next change is the event date:
-              @_getTimeTillEvent().then( (timeTillEvent) ->
+            @getValue().then( (val) =>
+              if val is true
+                # If its before the event then next change is the event date:
+                @_getTimeTillEvent().then( (timeTillEvent) =>
+                  @timeoutHandle = setTimeout( (=>
+                    @emit('change', false)
+                    setNextTimeOut()
+                  ), timeTillEvent)
+                )
+              else
+                # else its after the event, so next event date is 0:00 next day
+                timeTillTomorrow = @_getTimeTillTomorrow()
                 @timeoutHandle = setTimeout( (=>
-                  setNextTimeOut()
-                  @emit('change', false)
-                ), timeTillEvent)
-              )
-            else
-              # else its after the event, so next event date is 0:00 next day
-              timeTillTomorrow = @_getTimeTillTomorrow()
-              @timeoutHandle = setTimeout( (=>
-                setNextTimeOut()
-                @emit('change', true)
-              ), timeTillTomorrow)
-          when 'after'
-            val = @getValueSync()
-            if val is false
-              # If its before the event then next change is the event date:
-              @_getTimeTillEvent().then( (timeTillEvent) ->
-                @timeoutHandle = setTimeout( (=>
-                  setNextTimeOut()
                   @emit('change', true)
-                ), timeTillEvent)
-              )
-            else
-              # else its after the event, so next event date is 0:00 next day
-              timeTillTomorrow = @_getTimeTillTomorrow()
-              @timeoutHandle = setTimeout( (=>
-                setNextTimeOut()
-                @emit('change', false)
-              ), timeTillTomorrow)
+                  setNextTimeOut()
+                ), timeTillTomorrow)
+            )
+          when 'after'
+            @getValue().then( (val) =>
+              if val is false
+                # If its before the event then next change is the event date:
+                @_getTimeTillEvent().then( (timeTillEvent) =>
+                  @timeoutHandle = setTimeout( (=>
+                    @emit('change', true)
+                    setNextTimeOut()
+                  ), timeTillEvent)
+                )
+              else
+                # else its after the event, so next event date is 0:00 next day
+                timeTillTomorrow = @_getTimeTillTomorrow()
+                @timeoutHandle = setTimeout( (=>
+                  @emit('change', false)
+                  setNextTimeOut()
+                ), timeTillTomorrow)
+            )
                  
       setNextTimeOut()
 
     getType: -> if @modifier is 'exact' then 'event' else 'state'
 
-    getValueSync: ->
-      if @modifier is 'exact' then return false
+    getValue: ->
+      if @modifier is 'exact' then return Promise.resolve(false)
       now = @_getNow()
-      eventTime = @_getEventTime(now)
-      switch @modifier
-        when 'before' then return now < eventTime
-        when 'after' then return now > eventTime
-    getValue: -> Promise.resolve(@getValueSync())
+      eventTimePromise = @_getEventTime(now)
+      return @_getEventTime(now).then( (eventTime) =>
+        switch @modifier
+          when 'before' then return now < eventTime
+          when 'after' then return now > eventTime
+      )
     destroy: ->
+      #console.log("sunrise.coffee clearTimeout(#{@timeoutHandle})")
       clearTimeout(@timeoutHandle)
+      this.removeAllListeners()
+      #console.log("Removing variableValueChanged listener")
+      #console.log(@framework.variableManager.listeners('variableValueChanged'))
       @framework.variableManager.removeListener('variableValueChanged', @changeListener)
+      #console.log(@framework.variableManager.listeners('variableValueChanged'))
 
   # ###Finally
   # Create a instance of sunrise

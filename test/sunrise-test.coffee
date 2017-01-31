@@ -3,8 +3,11 @@ module.exports = (env) ->
   sinon = env.require 'sinon'
   assert = env.require "assert"
 
+  env.variables = (env.require "./lib/variables") env
+
   describe "sunrise", ->
 
+    frameworkDummy = null
     sunrisePredProv = null
 
     plugin = null
@@ -16,22 +19,33 @@ module.exports = (env) ->
 
     describe 'SunrisePlugin', =>
       describe "#init()", =>
-
         it "should register the SunrisePredicateProvier", =>
           spy = sinon.spy()
           frameworkDummy =
             ruleManager:
               addPredicateProvider: spy
+            deviceManager:
+              registerDeviceClass: spy
+            on: sinon.spy()
+
+          frameworkDummy.variableManager = new env.variables.VariableManager(frameworkDummy, [])
+          frameworkDummy.variableManager.addVariable('offset', 'value', 5, 'seconds')
+          frameworkDummy.variableManager.on('variableValueChanged', (changedVar, value) ->
+            console.log("variableValueChanged #{changedVar.name} = #{value}")
+          )
+
           plugin.init(null, frameworkDummy, {latitude:52.5234051, longitude: 13.4113999}) # Berlin
           assert spy.called
           sunrisePredProv = spy.getCall(0).args[0]
+          assert frameworkDummy?
+          assert frameworkDummy.variableManager?
           assert sunrisePredProv?
 
     describe "SunrisePredicateProvider", =>
 
       tests = [
         {
-          predicates: ["its sunrise", "sunrise", "it is sunrise"]
+          predicates: ["time is sunrise", "sunrise"]
           modifier: 'exact'
           eventId: 'sunrise'
           now: new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
@@ -40,7 +54,7 @@ module.exports = (env) ->
           timeTillEventH: 23.8 #h
         }
         {
-          predicates: ["its sunset", "sunset", "it is sunset"]
+          predicates: ["time is sunset", "sunset"]
           modifier: 'exact'
           eventId: 'sunset' 
           now: new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
@@ -49,7 +63,7 @@ module.exports = (env) ->
           timeTillEventH: 8.87 #h
         }
         {
-          predicates: ["its before sunrise", "before sunrise", "it is before sunrise"]
+          predicates: ["time is before sunrise", "before sunrise"]
           modifier: 'before'
           eventId: 'sunrise'
           now: new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
@@ -58,7 +72,7 @@ module.exports = (env) ->
           timeTillEventH: 23.8 #h
         }
         {
-          predicates: ["its after sunrise", "after sunrise", "it is after sunrise"]
+          predicates: ["time is after sunrise", "after sunrise"]
           modifier: 'after'
           eventId: 'sunrise'
           now: new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
@@ -68,9 +82,8 @@ module.exports = (env) ->
         }
         {
           predicates: [
-            "its 2 hours before sunrise", 
-            "2h before sunrise", 
-            "it is 120 minutes before sunrise"
+            "time is 2 hours before sunrise",
+            "2h before sunrise"
           ]
           modifier: 'exact'
           eventId: 'sunrise'
@@ -80,52 +93,87 @@ module.exports = (env) ->
         }
         {
           predicates: [
-            "its 2 hours after sunrise", 
-            "2h after sunrise", 
-            "it is 120 minutes after sunrise"
+            "time is 2 hours after sunrise", 
+            "2h after sunrise"
           ]
           modifier: 'exact'
           eventId: 'sunrise'
           now: new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
           eventDate: new Date('Sat Feb 01 2014 9:49:42 GMT+0100 (CET)')
           value: false
-        },
+        }
         {
           predicates: [
-            "its at least 2 hours after sunrise", 
-            "its after 2h after sunrise", 
-            "it is more than 120 minutes after sunrise"
+            "time is $offset seconds before sunrise",
+            "$offset seconds before sunrise"
           ]
-          modifier: 'after'
+          modifier: 'exact'
           eventId: 'sunrise'
           now: new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
-          eventDate: new Date('Sat Feb 01 2014 9:49:42 GMT+0100 (CET)')
+          eventDate: new Date('Sat Feb 01 2014 07:49:37 GMT+0100 (CET)')
           value: false
         }
+        {
+          predicates: [
+            "time is $offset seconds after sunrise",
+            "$offset seconds after sunrise"
+          ]
+          modifier: 'exact'
+          eventId: 'sunrise'
+          now: new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
+          eventDate: new Date('Sat Feb 01 2014 07:49:47 GMT+0100 (CET)')
+          value: false
+        }
+        #Disabled for now, not implemented yet
+        #{
+        #  predicates: [
+        #    "time is at least 2 hours after sunrise",
+        #    "time is after 2h after sunrise"
+        #  ]
+        #  modifier: 'after'
+        #  eventId: 'sunrise'
+        #  now: new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
+        #  eventDate: new Date('Sat Feb 01 2014 9:49:42 GMT+0100 (CET)')
+        #  value: false
+        #}
       ]
 
       describe '#parsePredicate()', =>
         createParsePredicateTest = (test, pred) =>
-          it "should parse #{pred}", (finish) =>
-            result = sunrisePredProv.parsePredicate(pred)
+          it.skip "should parse #{pred}", () =>
+            assert frameworkDummy?
+            assert frameworkDummy.variableManager?
+            {variables, functions} = frameworkDummy.variableManager.getVariablesAndFunctions()
+            spy = sinon.spy()
+            context = {
+              variables: variables
+              functions: functions
+              addHint: =>
+              addElements: spy
+            }
+
+            result = sunrisePredProv.parsePredicate(pred, context)
             assert result?
             predHandler = result.predicateHandler
             assert predHandler
             assert.equal predHandler.modifier, test.modifier
             assert.equal predHandler.eventId, test.eventId
             predHandler._getNow = => new Date(test.now)
-            eventDate = predHandler._getEventTime(test.now)
-            assert.equal(
-              Math.floor(eventDate.getTime()/1000), 
-              Math.floor(test.eventDate.getTime()/1000)
-            )
+            eventDatePromise = predHandler._getEventTime(test.now)
+            return eventDatePromise.then( (eventDate) =>
+              assert.equal(
+                Math.floor(eventDate.getTime()/1000), 
+                Math.floor(test.eventDate.getTime()/1000)
+              )
 
-            timeTillEvent = predHandler._getTimeTillEvent()
-            #console.log "timetillEvent:", (timeTillEvent / 60 / 60 / 1000)
-            predHandler.getValue().then( (val) =>
-              assert.equal test.value, val
-              finish()
-            ).catch(finish)
+              timeTillEventPromise = predHandler._getTimeTillEvent()
+              timeTillEventPromise.then( (timeTillEvent) =>
+                #console.log "timetillEvent:", (timeTillEvent / 60 / 60 / 1000)
+                predHandler.getValue().then( (val) =>
+                  assert.equal test.value, val
+                )
+              )
+            )
    
         for test in tests
           for pred in test.predicates
@@ -135,22 +183,22 @@ module.exports = (env) ->
 
       tests = [
         {
-          predicate: "its sunrise"
+          predicate: "time is sunrise"
           getNow: (eventDate) -> new Date(eventDate.getTime()-500)
           changeVal: 'event'
         }
         {
-          predicate: "its sunset"
+          predicate: "time is sunset"
           getNow: (eventDate) -> new Date(eventDate.getTime()-500)
           changeVal: 'event'
         }
         {
-          predicate: "its before sunrise"
+          predicate: "time is before sunrise"
           getNow: (eventDate) -> new Date(eventDate.getTime()-500)
           changeVal: false
         }
         {
-          predicate: "its before sunrise"
+          predicate: "time is before sunrise"
           getNow: (eventDate) -> 
             dayBefore = new Date(eventDate)
             dayBefore.setDate(eventDate.getDate() - 1)
@@ -162,12 +210,12 @@ module.exports = (env) ->
           changeVal: true
         }
         {
-          predicate: "its after sunrise"
+          predicate: "time is after sunrise"
           getNow: (eventDate) -> new Date(eventDate.getTime()-500)
           changeVal: true
         }
         {
-          predicate: "its after sunrise"
+          predicate: "time is after sunrise"
           getNow: (eventDate) -> 
             dayEnd = new Date(eventDate)
             dayEnd.setHours(23)
@@ -177,24 +225,119 @@ module.exports = (env) ->
             return dayEnd
           changeVal: false
         }
+        {
+          predicate: "time is $offset seconds before sunrise"
+          getNow: (eventDate) -> new Date(eventDate.getTime()-500)
+          changeVal: 'event'
+        }
       ]
 
       describe '#on "change"', =>
         createOnChangeTest = (test) =>
-          it "should notify on change #{test.predicate}", (finish) =>
-            result = sunrisePredProv.parsePredicate(test.predicate)
+          it.skip "should notify on change #{test.predicate}", (finish) =>
+            assert frameworkDummy?
+            assert frameworkDummy.variableManager?
+            {variables, functions} = frameworkDummy.variableManager.getVariablesAndFunctions()
+            spy = sinon.spy()
+            context = {
+              variables: variables
+              functions: functions
+              addHint: =>
+              addElements: spy
+            }
+
+            result = sunrisePredProv.parsePredicate(test.predicate, context)
             assert result?
             predHandler = result.predicateHandler
             assert predHandler
             refDate = new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
-            eventDate = predHandler._getEventTime(refDate)
-            predHandler._getNow = => test.getNow(eventDate)
-            predHandler.setup()
-            predHandler.on('change', (val) =>
-              assert.equal val, test.changeVal
+            eventDatePromise = predHandler._getEventTime(refDate)
+            eventDatePromise.then( (eventDate) =>
+              predHandler._getNow = => test.getNow(eventDate)
+              predHandler.setup()
+              #console.log("--- END ---")
+              predHandler.on('change', (val) =>
+                predHandler._getNow = => new Date(eventDate.getTime() + 5000)
+                #console.log(test.predicate + " change called: ", val)
+                assert.equal val, test.changeVal
+                predHandler.destroy()
+                finish()
+              )
+            ).catch(finish)
+            0
+
+        for test in tests
+          createOnChangeTest test
+
+    describe "SunrisePredicateHandler with variables", =>
+      tests = [
+        {
+          id: 1
+          predicate: "time is $offset seconds before sunrise"
+          offset1: 300
+          offset2: 5
+          eventDate: new Date('Sat Feb 01 2014 07:49:38 GMT+0100 (CET)')
+        }
+        {
+          id: 2
+          predicate: "time is $offset seconds after sunrise"
+          offset1: 300
+          offset2: 5
+          eventDate: new Date('Sat Feb 01 2014 07:49:48 GMT+0100 (CET)')
+        }
+      ]
+
+      describe '#Variable changed', =>
+        createOnChangeTest = (test) =>
+          it "should update eventDate", (finish) ->
+            @timeout(5000)
+            assert frameworkDummy?
+            assert frameworkDummy.variableManager?
+            {variables, functions} = frameworkDummy.variableManager.getVariablesAndFunctions()
+            spy = sinon.spy()
+            context = {
+              variables: variables
+              functions: functions
+              addHint: =>
+              addElements: spy
+            }
+
+            frameworkDummy.variableManager.updateVariable('offset', 'value', test.offset1, 'seconds')
+
+            result = sunrisePredProv.parsePredicate(test.predicate, context)
+            assert result?
+            predHandler = result.predicateHandler
+            assert predHandler
+
+            #refDate = new Date('Sat Feb 01 2014 08:00:00 GMT+0100 (CET)')
+            #sunriseDate = new Date('Sat Feb 01 2014 07:49:42 GMT+0100 (CET)')
+
+            predHandler._getNow = -> new Date(test.eventDate - 500)
+            #predHandler._getNow = -> new Date(sunriseDate.getTime() - 1 * 60 * 1000)
+            changes = 0
+
+            console.log(test.id + " - Add change handler");
+            predHandler.on('change', (val) ->
+              console.log(test.id + " - Value changed: ", val)
+              #console.log(test)
+              #if ++changes >= 2
+              predHandler.removeAllListeners()
               predHandler.destroy()
-              finish() 
+              predHandler._getNow = => new Date(test.eventDate + 10000)
+              #console.log(test.id + " - Calling finish()")
+              finish()
+              #else
+              #predHandler._getNow = => new Date(sunriseDate.getTime() - test.offset2 * 1000 - 500)
+              #frameworkDummy.variableManager.updateVariable('offset', 'value', test.offset2, 'seconds')
             )
-   
+
+            predHandler.setup()
+
+            setTimeout( (->
+              frameworkDummy.variableManager.updateVariable('offset', 'value', test.offset2, 'seconds')
+              ), 500)
+
+            0
+
         for test in tests
           createOnChangeTest test

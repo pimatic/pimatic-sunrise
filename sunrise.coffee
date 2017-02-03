@@ -153,7 +153,6 @@ module.exports = (env) ->
           m.matchTimeDurationExpression((m, tp) => 
             m.match([' before ', ' after '], (m, match) => 
               next = m
-              ba = match.trim()
               tp.mul = if match.trim() is "before" then -1 else 1
               timeOffset = tp
             )

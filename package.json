@@ -20,7 +20,7 @@
   "configSchema": "sunrise-config-schema.coffee",
   "dependencies": {
     "moment-timezone": "^0.5.14",
-    "suncalc": "~1.4.0"
+    "suncalc": "^1.8.0"
   },
   "peerDependencies": {
     "pimatic": ">=0.8.0 <1.0.0"

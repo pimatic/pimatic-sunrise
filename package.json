@@ -19,6 +19,7 @@
   "license": "GPL-2.0",
   "configSchema": "sunrise-config-schema.coffee",
   "dependencies": {
+    "moment-timezone": "^0.5.14",
     "suncalc": "~1.4.0"
   },
   "peerDependencies": {

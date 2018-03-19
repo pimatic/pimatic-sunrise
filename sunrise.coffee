@@ -7,6 +7,7 @@ module.exports = (env) ->
   M = env.matcher
   _ = env.require 'lodash'
   suncalc = require 'suncalc'
+  moment = require 'moment-timezone'
 
   events = {
     sunrise: 
@@ -73,6 +74,7 @@ module.exports = (env) ->
       @name = @config.name
       @latitude = @config.latitude ? @plugin.config.latitude
       @longitude = @config.longitude ? @plugin.config.longitude
+      @timezone = @config.timezone.trim().replace(/\ /g , "_")
       @attributes = _.cloneDeep(@attributes)
       @_initTimes()
 
@@ -86,7 +88,7 @@ module.exports = (env) ->
             acronym: attribute.label ? label
 
           @_createGetter attribute.name, () =>
-            return Promise.resolve @eventTimes[attribute.name].toLocaleTimeString()
+            return Promise.resolve @_transformTimezone(@eventTimes[attribute.name]).toLocaleTimeString()
 
       super(@config)
 
@@ -96,7 +98,7 @@ module.exports = (env) ->
           @_initTimes()
           for attribute in @config.attributes
             do (attribute) =>
-              @emit attribute.name, @eventTimes[attribute.name].toLocaleTimeString()
+              @emit attribute.name, @_transformTimezone(@eventTimes[attribute.name]).toLocaleTimeString()
 
           scheduleUpdate()
         , @_getTimeTillTomorrow()
@@ -112,6 +114,14 @@ module.exports = (env) ->
       tomorrow.setSeconds(0)
       tomorrow.setMilliseconds(0)
       return tomorrow.getTime() - now.getTime()
+
+    _transformTimezone: (date) ->
+      unless @timezone is ""
+        if @timezone in moment.tz.names()
+          date = new Date(moment(date).tz(@timezone).format('YYYY-MM-DD HH:mm:ss'))
+        else
+          env.logger.warn "Invalid timezone configuration for device. Skipping transformation"
+      return date
 
     _initTimes: () ->
       refDate = new Date()

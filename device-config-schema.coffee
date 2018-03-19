@@ -14,6 +14,10 @@ module.exports = {
         description: "longitude, if omitted the latitude given set as part of the plugin configuration applies"
         type: "number"
         required: false
+      timezone:
+        description: "the timezone to which the times shall be transformed. No transformation if empty"
+        type: "string"
+        default: ""
       attributes:
         description: "attributes which shall be exposed by the device"
         type: "array"

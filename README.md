@@ -35,6 +35,14 @@ attribute is one of the sunlight event names listed above.
 If a label text is set for an attribute the text will be used as an acronym for the attribute on display. Otherwise, the 
 acronym will be constructed from the event name. If the label text is an empty string no acronym will be displayed.
 
+Note, all times will be given in the local time zone of the system on which pimatic is installed. 
+If you wish to obtain the times in the local timezone of the location at given coordinates you can 
+additionally set the `timezone` property to the appropriate timezone. This will transform the times to the  
+given timezone and will cut off the timezone offsets before converting the resulting times to the localized 
+time string. For a list of valid "TZ" timezone strings, see 
+[Wikipedia - List of Timezones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones). If the `timezone` 
+property is absent or set to an empty string no transformation will be performed.
+
     {
           "id": "sunrise-1",
           "class": "SunriseDevice",

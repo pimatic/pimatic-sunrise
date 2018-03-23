@@ -35,17 +35,19 @@ attribute is one of the sunlight event names listed above.
 If a label text is set for an attribute the text will be used as an acronym for the attribute on display. Otherwise, the 
 acronym will be constructed from the event name. If the label text is an empty string no acronym will be displayed.
 
-If you wish to obtain the times in the timezone of the location at given coordinates you can 
-additionally set the `timezone` property to the appropriate timezone. This will transform the times to the  
-given timezone and will cut off the timezone offsets before converting the resulting times to the localized 
-time string. For a list of valid "TZ" timezone strings, see 
-[Wikipedia - List of Timezones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones). If the `timezone` 
-property is absent or set to an empty string no transformation will be performed. Additionally, it is possible to set a
-`utcOffset` offset time in hours relative to the `timezone`. this is useful for example if you wish to neglect daylight 
-savings, i.e. you can set the `timezone`to `UTC` and provide the required `utcOffset` value. Note, by default, all 
-times will be given in the local time zone of the system on which pimatic is installed. If you wish to use a different 
-timezone, e.g. universal time to neglect daylight savings, you can set the `localTimezone` and `localUtcOffset`
-properties.
+If you wish to obtain the times in the timezone of the location at the given coordinates you can 
+additionally set the `timezone` property. This will transform the times to the given timezone and will cut off 
+the timezone offsets before converting the resulting times to the localized time string. For a list of valid "TZ" 
+timezone strings, see [Wikipedia - List of Timezones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones). 
+
+If the `timezone` property is absent or the property is set to an empty string no transformation will be performed. 
+Additionally, it is possible to set a `utcOffset` offset time in hours relative to the `timezone`. 
+This is useful for example if you wish to neglect daylight savings, i.e. you can set the `timezone`to `UTC` 
+and provide the required `utcOffset` value. 
+
+Note, by default, all times will be given in the local time zone of the system on which pimatic is installed. If you 
+wish to use a different timezone, e.g. universal time to neglect daylight savings, you can set the `localTimezone` 
+and `localUtcOffset` properties. However, these properties are only applicable if the `timezone` property has been set.
 
     {
           "id": "sunrise-1",

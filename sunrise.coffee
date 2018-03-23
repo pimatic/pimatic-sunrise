@@ -74,7 +74,11 @@ module.exports = (env) ->
       @name = @config.name
       @latitude = @config.latitude ? @plugin.config.latitude
       @longitude = @config.longitude ? @plugin.config.longitude
+      @localTimezone = @config.localTimezone.trim().replace(/\ /g , "_")
+      @localTimezone = moment.tz.guess() if @localTimezone is ""
+      @localUtcOffset = parseInt(@config.localUtcOffset) * -1
       @timezone = @config.timezone.trim().replace(/\ /g , "_")
+      @utcOffset = parseInt(@config.utcOffset) * -1
       @attributes = _.cloneDeep(@attributes)
       @_initTimes()
 
@@ -115,10 +119,23 @@ module.exports = (env) ->
       tomorrow.setMilliseconds(0)
       return tomorrow.getTime() - now.getTime()
 
+    _getTimezoneOffsetString: (offset) ->
+      sign = '+'
+      if offset < 0
+        sign = '-'
+        offset *= -1
+      hours = '0' + Math.floor(offset).toString()
+      minutes = '0' + (Math.round(offset % 1 * 60)).toString()
+      sign + hours.substr(hours.length - 2) + minutes.substr(minutes.length - 2)
+
     _transformTimezone: (date) ->
       unless @timezone is ""
         if @timezone in moment.tz.names()
-          date = new Date(moment(date).tz(@timezone).format('YYYY-MM-DD HH:mm:ss'))
+          target = moment(date).tz(@timezone).utcOffset(@utcOffset, true).format('YYYY-MM-DDTHH:mm:ss')
+          localTimezoneOffset =
+            moment.tz.zone(@localTimezone).parse(new Date(target)) + @localUtcOffset * 60
+          tz = @_getTimezoneOffsetString(localTimezoneOffset / -60)
+          date = new Date(moment(target + tz).tz('UTC').format())
         else
           env.logger.warn "Invalid timezone configuration for device. Skipping transformation"
       return date

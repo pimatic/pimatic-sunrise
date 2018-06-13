@@ -1,5 +1,8 @@
 # Release History
 
+* unrelaed
+    * Added deprecation notice for `night` and `nightEnd` events 
+      and the corresponding predicates, issue #2
 * 20180324, V0.9.2
     * Added support for setting local timezone and timezone offsets
     * Revised README and package.json

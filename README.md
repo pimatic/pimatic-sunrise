@@ -8,7 +8,7 @@ Events for sunrise, sunset and more.
       "longitude": -122.03476
     }
 
-The Plugin uses [suncalc](https://github.com/mourner/suncalc). All Events:
+The Plugin uses [suncalc](https://github.com/mourner/suncalc). The following events are supported:
 
   * `sunrise`: sunrise (top edge of the sun appears on the horizon)
   * `sunriseEnd`: sunrise ends (bottom edge of the sun touches the horizon)
@@ -19,11 +19,15 @@ The Plugin uses [suncalc](https://github.com/mourner/suncalc). All Events:
   * `sunset`: sunset (sun disappears below the horizon, evening civil twilight starts)
   * `dusk`: dusk (evening nautical twilight starts)
   * `nauticalDusk`: nautical dusk (evening astronomical twilight starts)
-  * `night`: night starts (dark enough for astronomical observations)
-  * `nightEnd`: night ends (morning astronomical twilight starts)
+  * <s>`night`: night starts (dark enough for astronomical observations)</s>
+  * <s>`nightEnd`: night ends (morning astronomical twilight starts)</s>
   * `nauticalDawn`: nautical dawn (morning nautical twilight starts)
   * `dawn`: dawn (morning nautical twilight ends, morning civil twilight starts)
   * `nadir`: nadir (darkest moment of the night, sun is in the lowest position)
+  
+Note: `night` and `nightEnd` have been deprecated as these events yield invalid results for several 
+ locations due to a bug in the underlying suncalc package. The `night starts` and `night ends` predicates 
+ are also affected. 
 
 ## Device Configuration
 

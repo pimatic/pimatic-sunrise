@@ -10,46 +10,46 @@ module.exports = (env) ->
   moment = require 'moment-timezone'
 
   events = {
-    sunrise: 
+    sunrise:
       name: 'sunrise'
       desc: 'top edge of the sun appears on the horizon'
-    sunriseEnd: 
+    sunriseEnd:
       name: 'sunrise ends'
       desc: 'bottom edge of the sun touches the horizon'
-    goldenHourEnd: 
+    goldenHourEnd:
       name: 'morning golden hour'
       desc: 'soft light, best time for photography ends'
-    solarNoon: 
+    solarNoon:
       name: 'solar noon'
       desc: 'sun is in the highest position'
-    goldenHour: 
-      name: 'golden hours' 
+    goldenHour:
+      name: 'golden hours'
       desc: 'evening golden hour starts'
-    sunsetStart: 
+    sunsetStart:
       name: 'sunset starts'
       desc: 'bottom edge of the sun touches the horizon'
-    sunset: 
+    sunset:
       name: 'sunset'
       desc: 'sun disappears below the horizon, evening civil twilight starts'
-    dusk: 
+    dusk:
       name: 'dusk'
       desc: 'evening nautical twilight starts'
-    nauticalDusk: 
+    nauticalDusk:
       name: 'nautical dusk'
       desc: 'evening astronomical twilight starts'
-    night: 
+    night:
       name: 'night starts'
       desc: 'dark enough for astronomical observations'
-    nightEnd: 
+    nightEnd:
       name: 'night ends'
       desc: 'morning astronomical twilight starts'
-    nauticalDawn: 
+    nauticalDawn:
       name: 'nautical dawn'
       desc: 'morning nautical twilight starts'
-    dawn: 
+    dawn:
       name: 'dawn'
       desc: 'morning nautical twilight ends, morning civil twilight starts'
-    nadir: 
+    nadir:
       name: 'nadir'
       desc: 'darkest moment of the night, sun is in the lowest position'
   }
@@ -70,6 +70,7 @@ module.exports = (env) ->
 
   class SunriseDevice extends env.devices.Device
     constructor: (@config, @plugin, lastState) ->
+      super()
       @id = @config.id
       @name = @config.name
       @latitude = @config.latitude ? @plugin.config.latitude
@@ -93,8 +94,6 @@ module.exports = (env) ->
 
           @_createGetter attribute.name, () =>
             return Promise.resolve @_transformTimezone(@eventTimes[attribute.name]).toLocaleTimeString()
-
-      super(@config)
 
       scheduleUpdate = () =>
         @_updateTimeout = setTimeout =>
@@ -155,10 +154,11 @@ module.exports = (env) ->
   class SunrisePredicateProvider extends env.predicates.PredicateProvider
 
     constructor: (@config) ->
+      super()
       env.logger.info """
         Your location is set to lat: #{@config.latitude}, long: #{@config.longitude}
       """
-      return 
+      return
 
     parsePredicate: (input, context) ->
       justNames = (o.name for id, o of events)
@@ -168,15 +168,15 @@ module.exports = (env) ->
       fullMatch = null
       eventId = null
       timeOffset = 0
-      modifier = null      
+      modifier = null
 
       M(input, context)
         .match(['its ', 'it is '], optional: yes)
         .match(['before ', 'after '], optional: yes, (m, match) => modifier = match.trim())
-        .optional( (m) => 
+        .optional( (m) =>
           next = m
-          m.matchTimeDuration((m, tp) => 
-            m.match([' before ', ' after '], (m, match) => 
+          m.matchTimeDuration((m, tp) =>
+            m.match([' before ', ' after '], (m, match) =>
               next = m
               timeOffset = tp.timeMs
               if match.trim() is "before"
@@ -209,6 +209,7 @@ module.exports = (env) ->
   class SunrisePredicateHandler extends env.predicates.PredicateHandler
 
     constructor: (@config, @eventId, @modifier, @timeOffset) ->
+      super()
 
     # gets overwritten by tests
     _getNow: -> new Date()
@@ -216,8 +217,8 @@ module.exports = (env) ->
     _getEventTime: (refDate, eventId = @eventId, timeOffset = @timeOffset)->
       # https://github.com/mourner/suncalc/issues/11
       eventTimes = suncalc.getTimes(
-        new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate(), 12, 0, 0, 0, 0), 
-        @config.latitude, 
+        new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate(), 12, 0, 0, 0, 0),
+        @config.latitude,
         @config.longitude
       )
       # add offset
@@ -253,7 +254,7 @@ module.exports = (env) ->
       tomorrow.setMilliseconds(0)
       return tomorrow.getTime() - now.getTime()
 
-    setup: -> 
+    setup: ->
       setNextTimeOut = =>
         switch @modifier
           when 'exact'
@@ -294,7 +295,7 @@ module.exports = (env) ->
                 setNextTimeOut()
                 @emit('change', false)
               ), timeTillTomorrow)
-                 
+
       setNextTimeOut()
 
     getType: -> if @modifier is 'exact' then 'event' else 'state'

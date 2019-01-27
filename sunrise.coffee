@@ -162,7 +162,7 @@ module.exports = (env) ->
 
     parsePredicate: (input, context) ->
       justNames = (o.name for id, o of events)
-      allIdsAndNames = _([id, o.name] for id, o of events).flatten().unique().valueOf()
+      allIdsAndNames = _([id, o.name] for id, o of events).flatten().uniq().valueOf()
 
       matchToken = null
       fullMatch = null

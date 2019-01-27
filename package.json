@@ -2,6 +2,12 @@
   "name": "pimatic-sunrise",
   "description": "Events for sunrise, sunset and more",
   "author": "Oliver Schneider <oliverschneider89+pimatic@gmail.com> (http://pimatic.org)",
+  "contributors": [
+    {
+      "name": "Marcus Wittig",
+      "url": "https://github.com/mwittig"
+    }
+  ],
   "main": "sunrise",
   "files": [
     "device-config-schema.coffee",

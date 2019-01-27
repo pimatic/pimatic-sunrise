@@ -20,7 +20,7 @@
   "license": "GPL-2.0",
   "configSchema": "sunrise-config-schema.coffee",
   "dependencies": {
-    "moment-timezone": "^0.5.14",
+    "moment-timezone": "^0.5.23",
     "suncalc": "^1.8.0"
   },
   "peerDependencies": {

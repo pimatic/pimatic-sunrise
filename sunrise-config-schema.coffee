@@ -11,4 +11,9 @@ module.exports = {
       description: "longitude"
       type: "number"
       default: -122.03476
+    timeFormat:
+      description: "Change the time display format"
+      type: "string"
+      enum: ["default", "12h", "24h"]
+      default: "default"
 }

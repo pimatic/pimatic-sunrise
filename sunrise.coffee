@@ -80,6 +80,7 @@ module.exports = (env) ->
       @timezone = @config.timezone.trim().replace(/\ /g , "_")
       @utcOffset = parseInt(@config.utcOffset) * -1
       @attributes = _.cloneDeep(@attributes)
+      @timeFormatOptions = if @plugin.config.timeFormat == 'default' then {} else { hour12: @plugin.config.timeFormat == '12h' }
       @_initTimes()
 
       for attribute in @config.attributes
@@ -92,7 +93,7 @@ module.exports = (env) ->
             acronym: attribute.label ? label
 
           @_createGetter attribute.name, () =>
-            return Promise.resolve @_transformTimezone(@eventTimes[attribute.name]).toLocaleTimeString()
+            return Promise.resolve @_transformTimezone(@eventTimes[attribute.name]).toLocaleTimeString(undefined, @timeFormatOptions)
 
       super(@config)
 
@@ -102,7 +103,7 @@ module.exports = (env) ->
           @_initTimes()
           for attribute in @config.attributes
             do (attribute) =>
-              @emit attribute.name, @_transformTimezone(@eventTimes[attribute.name]).toLocaleTimeString()
+              @emit attribute.name, @_transformTimezone(@eventTimes[attribute.name]).toLocaleTimeString(undefined, @timeFormatOptions)
 
           scheduleUpdate()
         , @_getTimeTillTomorrow()
